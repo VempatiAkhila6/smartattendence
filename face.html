@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            padding: 20px;
+        }
+
+        .attendance-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .camera-container {
+            position: relative;
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-radius: 15px;
+            margin: 20px;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Mobile-specific camera styles */
+        @media (max-width: 768px) {
+            .camera-container {
+                padding: 15px;
+                margin: 15px 10px;
+            }
+
+            #video {
+                max-width: 100%;
+                height: auto;
+                aspect-ratio: 4/3;
+                border-radius: 10px;
+            }
+
+            .capture-btn {
+                padding: 12px 24px;
+                font-size: 16px;
+                margin: 15px 5px;
+                width: 100%;
+                max-width: 200px;
+            }
+
+            .attendance-status {
+                font-size: 18px;
+                padding: 15px;
+            }
+
+            .loading-spinner {
+                padding: 15px;
+            }
+
+            .spinner-border {
+                width: 2.5rem;
+                height: 2.5rem;
+            }
+        }
+
+        /* Mobile landscape orientation */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .camera-container {
+                padding: 10px;
+                margin: 10px;
+            }
+
+            #video {
+                max-width: 300px;
+                aspect-ratio: 16/9;
+            }
+
+            .capture-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+                margin: 10px 5px;
+            }
+        }
+
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            .camera-container {
+                padding: 10px;
+                margin: 10px 5px;
+            }
+
+            #video {
+                border-radius: 8px;
+            }
+
+            .capture-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+                margin: 10px 2px;
+            }
+
+            .attendance-status {
+                font-size: 16px;
+                padding: 10px;
+            }
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .capture-btn {
+            background: linear-gradient(135deg, var(--success-color), #20c997);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .capture-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+        }
+
+        .attendance-status {
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .status-present {
+            color: var(--success-color);
+        }
+
+        .status-absent {
+            color: var(--danger-color);
+        }
+
+        .time-display {
+            background: linear-gradient(135deg, var(--info-color), #138496);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .calendar-container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-nav {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-nav:hover {
+            background: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .calendar-day:hover {
+            background: #f8f9fa;
+        }
+
+        .calendar-day.present {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .calendar-day.absent {
+            background: var(--danger-color);
+            color: white;
+            font-size: 0.8rem;
+            min-width: 30px;
+            min-height: 30px;
+        }
+
+        .calendar-day.weekend {
+            background: #6c757d;
+            color: white;
+        }
+
+        .calendar-day.today {
+            border: 3px solid var(--primary-color);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .coin-system {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            color: #333;
+        }
+
+        .benefits-section {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .benefit-item {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .benefit-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .benefit-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .benefit-desc {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .coin-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .leave-request {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .attendance-history {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: #f8f9fa;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .attendance-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-present {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .badge-absent {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .badge-late {
+            background: var(--warning-color);
+            color: #333;
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .btn-close {
+            filter: invert(1);
+        }
+
+        @media (max-width: 768px) {
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .calendar-grid {
+                gap: 2px;
+            }
+            
+            .calendar-day {
+                font-size: 0.8rem;
+            }
+
+            .main-container {
+                padding: 10px;
+            }
+
+            .attendance-card {
+                margin-bottom: 20px;
+            }
+
+            .card-header-custom {
+                padding: 15px;
+            }
+
+            .card-header-custom h1 {
+                font-size: 1.8rem;
+            }
+
+            .card-header-custom h3 {
+                font-size: 1.3rem;
+            }
+
+            .time-display {
+                margin: 15px 10px;
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            .benefits-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .benefit-item {
+                padding: 12px;
+            }
+
+            .notification-bell {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                top: 15px;
+                right: 15px;
+            }
+
+            .notification-panel {
+                width: 300px;
+                top: 75px;
+                right: 15px;
+            }
+
+            .queries-section {
+                padding: 15px;
+                margin: 15px 0;
+            }
+
+            .query-item {
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card-header-custom h1 {
+                font-size: 1.5rem;
+            }
+
+            .card-header-custom h3 {
+                font-size: 1.1rem;
+            }
+
+            .time-display {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .notification-bell {
+                width: 45px;
+                height: 45px;
+                font-size: 1rem;
+            }
+
+            .notification-badge {
+                width: 20px;
+                height: 20px;
+                font-size: 0.7rem;
+            }
+
+            .notification-panel {
+                width: 280px;
+            }
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .alert-custom {
+            border-radius: 15px;
+            border: none;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+
+        .notification-bell {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .notification-bell:hover {
+            transform: scale(1.1);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .notification-panel {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 999;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .notification-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .notification-time {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .queries-section {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .query-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .query-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .query-status {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: var(--warning-color);
+            color: #333;
+        }
+
+        .status-resolved {
+            background: var(--success-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Notification Bell -->
+    <button class="notification-bell" id="notification-bell">
+        <i class="fas fa-bell"></i>
+        <div class="notification-badge" id="notification-badge" style="display: none;">0</div>
+    </button>
+
+    <!-- Notification Panel -->
+    <div class="notification-panel" id="notification-panel">
+        <div class="notification-header">
+            <h5 class="mb-0"><i class="fas fa-bell"></i> Notifications</h5>
+            <button class="btn-close btn-close-white" id="close-notifications"></button>
+        </div>
+        <div id="notification-list"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="attendance-card">
+            <div class="card-header-custom">
+                <h1><i class="fas fa-user-check"></i> Smart Attendance System</h1>
+                <p class="mb-0">Face Recognition Based Attendance Management</p>
+            </div>
+        </div>
+
+        <!-- Current Time Display -->
+        <div class="time-display">
+            <i class="fas fa-clock"></i>
+            <span id="current-time"></span>
+            <div id="current-date"></div>
+        </div>
+
+        <!-- Main Attendance Section -->
+        <div class="attendance-card">
+            <div class="card-header-custom">
+                <h3><i class="fas fa-camera"></i> Face Recognition Attendance</h3>
+            </div>
+            
+            <div class="camera-container">
+                <div class="camera-header mb-3">
+                    <h5><i class="fas fa-mobile-alt"></i> Mobile Camera Ready</h5>
+                    <p class="text-muted mb-0">Position your face in the camera view</p>
+                </div>
+                
+                <video id="video" autoplay playsinline muted></video>
+                <canvas id="canvas"></canvas>
+                
+                <div class="loading-spinner" id="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <p class="mt-2">Processing face recognition...</p>
+                    <small class="text-muted">This may take a few seconds on mobile devices</small>
+                </div>
+                
+                <div class="camera-controls mt-3">
+                    <button class="capture-btn" id="capture-btn">
+                        <i class="fas fa-camera"></i> Mark Attendance
+                    </button>
+                    <button class="capture-btn btn-secondary" id="checkout-btn" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i> Check Out
+                    </button>
+                </div>
+                
+                <div class="camera-tips mt-3">
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb"></i>
+                        <strong>Tips:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Ensure good lighting for better recognition</li>
+                            <li>Hold your phone steady</li>
+                            <li>Face the camera directly</li>
+                            <li>Allow camera permissions when prompted</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="attendance-status" id="attendance-status"></div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon text-success">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-value" id="present-days">0</div>
+                <div class="stat-label">Present Days</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon text-danger">
+                    <i class="fas fa-calendar-times"></i>
+                </div>
+                <div class="stat-value" id="absent-days">0</div>
+                <div class="stat-label">Absent Days</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-value" id="avg-hours">0</div>
+                <div class="stat-label">Avg. Hours/Day</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon text-info">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-value" id="attendance-rate">0%</div>
+                <div class="stat-label">Attendance Rate</div>
+            </div>
+        </div>
+
+        <!-- Coin System -->
+        <div class="coin-system">
+            <h3><i class="fas fa-coins"></i> Attendance Coins</h3>
+            <div class="coin-amount" id="coin-amount">0</div>
+            <p>Earn coins for daily attendance. Use coins to request leaves!</p>
+            <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#leaveModal">
+                <i class="fas fa-calendar-plus"></i> Request Leave
+            </button>
+        </div>
+
+        <!-- Benefits Section -->
+        <div class="benefits-section">
+            <h3><i class="fas fa-gift"></i> Coin Benefits & Rewards</h3>
+            <p>More coins = More benefits! Earn rewards and recognition</p>
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="benefit-title">Salary Bonus</div>
+                    <div class="benefit-desc">50+ coins = 5% salary increase</div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <div class="benefit-title">Gift Cards</div>
+                    <div class="benefit-desc">100+ coins = $50 gift card</div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="benefit-title">Recognition</div>
+                    <div class="benefit-desc">200+ coins = Employee of the month</div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-plane"></i>
+                    </div>
+                    <div class="benefit-title">Extra Leave</div>
+                    <div class="benefit-desc">300+ coins = Extra paid leave</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manager Response Section -->
+        <div class="attendance-card">
+            <div class="card-header-custom">
+                <h3><i class="fas fa-reply"></i> Manager Responses</h3>
+                <p class="mb-0">View responses from ${managerDetails.name}</p>
+            </div>
+            <div class="p-3">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Manager:</strong> Vempathi Akhila (vempatiakhila63@gmail.com)
+                </div>
+                
+                <!-- Manager's Welcome Message -->
+                <div class="card mb-3 border-success" id="manager-welcome-message">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-bullhorn"></i> <strong>Message from Vempathi Akhila</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Hello everyone!</strong></p>
+                        <p class="mb-2">How is your work going? I hope everything is progressing well.</p>
+                        <p class="mb-0">Please feel free to reach out if you need any assistance or have questions about the attendance system.</p>
+                        <div class="text-muted mt-2">
+                            <small>Posted: <span id="manager-post-time"></span></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="manager-responses"></div>
+            </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="calendar-nav" id="prev-month">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h3 id="calendar-title">January 2024</h3>
+                <button class="calendar-nav" id="next-month">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <!-- Attendance History -->
+        <div class="attendance-history">
+            <h3><i class="fas fa-history"></i> Recent Attendance History</h3>
+            <div id="history-list"></div>
+        </div>
+
+        <!-- Queries Section -->
+        <div class="queries-section">
+            <h3><i class="fas fa-question-circle"></i> Queries & Support</h3>
+            <p>Have questions? Submit your queries here and get quick responses.</p>
+            
+            <form id="query-form" class="mb-4">
+                <div class="mb-3">
+                    <label class="form-label">Subject</label>
+                    <input type="text" class="form-control" id="query-subject" placeholder="Enter query subject" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Query Details</label>
+                    <textarea class="form-control" id="query-details" rows="4" placeholder="Describe your query in detail..." required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Priority</label>
+                    <select class="form-select" id="query-priority" required>
+                        <option value="">Select priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> Submit Query
+                </button>
+            </form>
+
+            <h4>Recent Queries</h4>
+            <div id="queries-list"></div>
+        </div>
+    </div>
+
+    <!-- Leave Request Modal -->
+    <div class="modal fade" id="leaveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-plus"></i> Request Leave
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="leave-form">
+                        <div class="mb-3">
+                            <label class="form-label">Employee Name</label>
+                            <input type="text" class="form-control" id="employee-name" value="John Doe" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Employee Email</label>
+                            <input type="email" class="form-control" id="employee-email" value="john.doe@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Leave Type</label>
+                            <select class="form-select" id="leave-type" required>
+                                <option value="">Select leave type</option>
+                                <option value="sick">Sick Leave (5 coins)</option>
+                                <option value="personal">Personal Leave (3 coins)</option>
+                                <option value="emergency">Emergency Leave (10 coins)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="leave-start" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="leave-end" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Reason</label>
+                            <textarea class="form-control" id="leave-reason" rows="3" required></textarea>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Available coins: <span id="available-coins">0</span>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Note:</strong> Additional 2 coins will be deducted for leave processing fee.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submit-leave">Submit Request</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Global variables
+        let currentUser = {
+            id: 1,
+            name: 'John Doe',
+            email: 'john.doe@example.com',
+            coins: 0,
+            attendance: [],
+            leaveRequests: [],
+            queries: [],
+            notifications: []
+        };
+
+        // Manager details
+        const managerDetails = {
+            name: 'Vempathi Akhila',
+            email: 'vempatiakhila63@gmail.com',
+            role: 'Manager'
+        };
+        
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        let isCheckedIn = false;
+        let checkInTime = null;
+        let checkOutTime = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if device supports camera
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showAlert('Camera is not supported on this device or browser. Please use a modern browser with camera support.', 'danger');
+            } else {
+                initializeCamera();
+            }
+            
+            updateTime();
+            loadAttendanceData();
+            renderCalendar();
+            updateStats();
+            renderHistory();
+            renderQueries();
+            updateNotifications();
+            renderManagerResponses();
+            updateManagerPostTime();
+            
+            // Update time every second
+            setInterval(updateTime, 1000);
+            
+            // Setup notification bell
+            setupNotifications();
+            
+            // Add welcome notification from manager
+            setTimeout(() => {
+                addNotification('Welcome Message', `Hello! Vempathi Akhila has posted a welcome message. Check the Manager Responses section.`, 'info');
+            }, 2000);
+            
+            // Simulate manager responses for demo
+            setTimeout(() => {
+                simulateManagerResponses();
+            }, 5000);
+
+            // Handle orientation changes on mobile
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    // Reinitialize camera after orientation change
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        initializeCamera();
+                    }
+                }, 1000);
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                // Adjust layout for mobile devices
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) {
+                    // Force video aspect ratio on mobile
+                    const video = document.getElementById('video');
+                    if (video) {
+                        video.style.aspectRatio = window.innerWidth < 768 ? '4/3' : '16/9';
+                    }
+                }
+            });
+        });
+
+        // Camera initialization
+        async function initializeCamera() {
+            try {
+                // Check if device is mobile
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                // Get screen dimensions for optimal camera settings
+                const screenWidth = window.screen.width;
+                const screenHeight = window.screen.height;
+                
+                let videoConstraints = {
+                    facingMode: 'user', // Use front camera
+                    width: { ideal: 1280, max: 1920 },
+                    height: { ideal: 720, max: 1080 }
+                };
+
+                // Mobile-specific camera settings
+                if (isMobile) {
+                    videoConstraints = {
+                        facingMode: 'user',
+                        width: { ideal: Math.min(screenWidth, 640), max: 1280 },
+                        height: { ideal: Math.min(screenHeight * 0.6, 480), max: 720 },
+                        aspectRatio: { ideal: 4/3 }
+                    };
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: videoConstraints,
+                    audio: false
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                // Wait for video to load
+                video.onloadedmetadata = function() {
+                    console.log('Camera initialized successfully');
+                    console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                };
+
+                // Handle video errors
+                video.onerror = function() {
+                    console.error('Video error occurred');
+                    showAlert('Camera video error. Please refresh the page.', 'danger');
+                };
+
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                
+                // Provide specific error messages for different scenarios
+                if (error.name === 'NotAllowedError') {
+                    showAlert('Camera access denied. Please allow camera permissions in your browser settings.', 'danger');
+                } else if (error.name === 'NotFoundError') {
+                    showAlert('No camera found on this device. Please use a device with a camera.', 'danger');
+                } else if (error.name === 'NotSupportedError') {
+                    showAlert('Camera not supported on this device or browser. Please try a different browser.', 'danger');
+                } else {
+                    showAlert('Camera initialization failed. Please refresh the page and try again.', 'danger');
+                }
+            }
+        }
+
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const dateString = now.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            document.getElementById('current-time').textContent = timeString;
+            document.getElementById('current-date').textContent = dateString;
+        }
+
+        // Capture attendance
+        document.getElementById('capture-btn').addEventListener('click', function() {
+            captureAttendance();
+        });
+
+        document.getElementById('checkout-btn').addEventListener('click', function() {
+            checkOut();
+        });
+
+        function captureAttendance() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            
+            // Check if video is ready
+            if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+                showAlert('Camera is not ready. Please wait a moment and try again.', 'warning');
+                return;
+            }
+            
+            // Set canvas size based on video dimensions
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            try {
+                // Draw video frame to canvas
+                context.drawImage(video, 0, 0);
+                
+                // Show loading spinner
+                document.getElementById('loading-spinner').style.display = 'block';
+                document.getElementById('capture-btn').disabled = true;
+                
+                // Add mobile-specific processing time
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const processingTime = isMobile ? 3000 : 2000; // Longer processing on mobile
+                
+                // Simulate face recognition processing
+                setTimeout(() => {
+                    processAttendance();
+                }, processingTime);
+                
+            } catch (error) {
+                console.error('Error capturing image:', error);
+                showAlert('Error capturing image. Please try again.', 'danger');
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('capture-btn').disabled = false;
+            }
+        }
+
+        function processAttendance() {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            
+            // Check if already marked attendance today
+            const existingAttendance = currentUser.attendance.find(a => a.date === today);
+            
+            if (existingAttendance) {
+                showAlert('Attendance already marked for today!', 'warning');
+            } else {
+                // Mark attendance
+                const attendance = {
+                    date: today,
+                    checkIn: now.toLocaleTimeString(),
+                    checkOut: null,
+                    status: 'present',
+                    hours: 0
+                };
+                
+                currentUser.attendance.push(attendance);
+                isCheckedIn = true;
+                checkInTime = now;
+                
+                // Award coins for attendance
+                currentUser.coins += 1;
+                
+                // Update UI
+                document.getElementById('attendance-status').innerHTML = 
+                    '<span class="status-present"><i class="fas fa-check-circle"></i> Attendance Marked Successfully!</span>';
+                document.getElementById('capture-btn').style.display = 'none';
+                document.getElementById('checkout-btn').style.display = 'inline-block';
+                
+                showAlert('Attendance marked successfully! You earned 1 coin.', 'success');
+                addNotification('Attendance Marked', 'You have successfully marked your attendance for today!', 'attendance');
+                
+                // Check for benefits
+                checkAndAwardBenefits();
+                
+                // Update data
+                updateStats();
+                renderCalendar();
+                renderHistory();
+                saveAttendanceData();
+            }
+            
+            // Hide loading spinner
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('capture-btn').disabled = false;
+        }
+
+        function checkOut() {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            
+            const attendance = currentUser.attendance.find(a => a.date === today);
+            if (attendance) {
+                attendance.checkOut = now.toLocaleTimeString();
+                checkOutTime = now;
+                
+                // Calculate hours worked
+                const hoursWorked = (checkOutTime - checkInTime) / (1000 * 60 * 60);
+                attendance.hours = Math.round(hoursWorked * 100) / 100;
+                
+                // Award bonus coins for full day
+                if (hoursWorked >= 8) {
+                    currentUser.coins += 2;
+                    showAlert('Great! You worked a full day and earned 2 bonus coins!', 'success');
+                }
+                
+                isCheckedIn = false;
+                checkInTime = null;
+                checkOutTime = null;
+                
+                // Update UI
+                document.getElementById('attendance-status').innerHTML = 
+                    '<span class="status-present"><i class="fas fa-sign-out-alt"></i> Checked Out Successfully!</span>';
+                document.getElementById('capture-btn').style.display = 'inline-block';
+                document.getElementById('checkout-btn').style.display = 'none';
+                
+                // Check for benefits after checkout
+                checkAndAwardBenefits();
+                
+                updateStats();
+                renderHistory();
+                saveAttendanceData();
+            }
+        }
+
+        // Calendar functionality
+        document.getElementById('prev-month').addEventListener('click', function() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        document.getElementById('next-month').addEventListener('click', function() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        function renderCalendar() {
+            const calendarTitle = document.getElementById('calendar-title');
+            const calendarGrid = document.getElementById('calendar-grid');
+            
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            
+            calendarTitle.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+            
+            // Clear grid
+            calendarGrid.innerHTML = '';
+            
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-day';
+                dayHeader.style.fontWeight = 'bold';
+                dayHeader.style.color = '#667eea';
+                dayHeader.textContent = day;
+                calendarGrid.appendChild(dayHeader);
+            });
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            // Fill calendar
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                // Check if date is in current month
+                if (date.getMonth() === currentMonth) {
+                    dayElement.textContent = date.getDate();
+                    
+                    // Check if it's today
+                    const today = new Date();
+                    if (date.toDateString() === today.toDateString()) {
+                        dayElement.classList.add('today');
+                    }
+                    
+                    // Check if it's weekend
+                    if (date.getDay() === 0 || date.getDay() === 6) {
+                        dayElement.classList.add('weekend');
+                    }
+                    
+                    // Check attendance status
+                    const dateString = date.toISOString().split('T')[0];
+                    const attendance = currentUser.attendance.find(a => a.date === dateString);
+                    
+                    if (attendance) {
+                        dayElement.classList.add('present');
+                        dayElement.title = `Present - Check In: ${attendance.checkIn}`;
+                    } else if (date.getDay() !== 0 && date.getDay() !== 6 && date <= today) {
+                        dayElement.classList.add('absent');
+                        dayElement.title = 'Absent';
+                    }
+                } else {
+                    dayElement.style.color = '#ccc';
+                }
+                
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            const presentDays = currentUser.attendance.length;
+            const totalWorkingDays = getWorkingDaysInMonth();
+            const absentDays = totalWorkingDays - presentDays;
+            const attendanceRate = totalWorkingDays > 0 ? Math.round((presentDays / totalWorkingDays) * 100) : 0;
+            
+            // Calculate average hours
+            const totalHours = currentUser.attendance.reduce((sum, a) => sum + (a.hours || 0), 0);
+            const avgHours = presentDays > 0 ? Math.round((totalHours / presentDays) * 100) / 100 : 0;
+            
+            document.getElementById('present-days').textContent = presentDays;
+            document.getElementById('absent-days').textContent = absentDays;
+            document.getElementById('avg-hours').textContent = avgHours;
+            document.getElementById('attendance-rate').textContent = attendanceRate + '%';
+            document.getElementById('coin-amount').textContent = currentUser.coins;
+        }
+
+        function getWorkingDaysInMonth() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let workingDays = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                if (date.getDay() !== 0 && date.getDay() !== 6 && date <= today) {
+                    workingDays++;
+                }
+            }
+            return workingDays;
+        }
+
+        // Render attendance history
+        function renderHistory() {
+            const historyList = document.getElementById('history-list');
+            const recentAttendance = currentUser.attendance.slice(-10).reverse();
+            
+            historyList.innerHTML = '';
+            
+            recentAttendance.forEach(attendance => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const date = new Date(attendance.date);
+                const formattedDate = date.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                historyItem.innerHTML = `
+                    <div>
+                        <strong>${formattedDate}</strong>
+                        <div class="text-muted">
+                            Check In: ${attendance.checkIn}
+                            ${attendance.checkOut ? `<br>Check Out: ${attendance.checkOut}` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="attendance-badge badge-present">Present</span>
+                        ${attendance.hours ? `<div class="text-muted mt-1">${attendance.hours}h</div>` : ''}
+                    </div>
+                `;
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        // Query form submission
+        document.getElementById('query-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitQuery();
+        });
+
+        // Leave request functionality
+        document.getElementById('submit-leave').addEventListener('click', function() {
+            const employeeName = document.getElementById('employee-name').value;
+            const employeeEmail = document.getElementById('employee-email').value;
+            const leaveType = document.getElementById('leave-type').value;
+            const startDate = document.getElementById('leave-start').value;
+            const endDate = document.getElementById('leave-end').value;
+            const reason = document.getElementById('leave-reason').value;
+            
+            if (!employeeName || !employeeEmail || !leaveType || !startDate || !endDate || !reason) {
+                showAlert('Please fill in all fields', 'danger');
+                return;
+            }
+            
+            const coinCosts = {
+                'sick': 5,
+                'personal': 3,
+                'emergency': 10
+            };
+            
+            const baseCost = coinCosts[leaveType];
+            const processingFee = 2; // Additional coins for processing
+            const totalCost = baseCost + processingFee;
+            
+            if (currentUser.coins < totalCost) {
+                showAlert(`Insufficient coins. You need ${totalCost} coins (${baseCost} + ${processingFee} processing fee).`, 'danger');
+                return;
+            }
+            
+            // Generate unique leave request ID
+            const leaveId = 'LR' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
+            
+            // Create leave request object
+            const leaveRequest = {
+                id: leaveId,
+                employeeName: employeeName,
+                employeeEmail: employeeEmail,
+                leaveType: leaveType,
+                startDate: startDate,
+                endDate: endDate,
+                reason: reason,
+                status: 'pending',
+                submittedAt: new Date().toISOString(),
+                coinsDeducted: totalCost
+            };
+            
+            // Add to user's leave requests
+            currentUser.leaveRequests.push(leaveRequest);
+            
+            // Deduct coins
+            currentUser.coins -= totalCost;
+            
+            // Send email to manager
+            sendLeaveRequestEmail(leaveRequest);
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('leaveModal'));
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('leave-form').reset();
+            document.getElementById('employee-name').value = 'John Doe';
+            document.getElementById('employee-email').value = 'john.doe@example.com';
+            
+            showAlert(`Leave request submitted successfully! ${totalCost} coins deducted. Email sent to ${managerDetails.name}.`, 'success');
+            
+            // Add notification
+            addNotification('Leave Request Submitted', `Your ${leaveTypeNames[leaveType]} request has been sent to ${managerDetails.name}.`, 'leave');
+            
+            updateStats();
+            saveAttendanceData();
+        });
+
+        // Update available coins in modal
+        document.getElementById('leaveModal').addEventListener('show.bs.modal', function() {
+            document.getElementById('available-coins').textContent = currentUser.coins;
+        });
+
+        // Email functionality for leave requests
+        function sendLeaveRequestEmail(leaveRequest) {
+            const managerEmail = managerDetails.email;
+            const subject = `Leave Request - ${leaveRequest.id}`;
+            
+            const leaveTypeNames = {
+                'sick': 'Sick Leave',
+                'personal': 'Personal Leave',
+                'emergency': 'Emergency Leave'
+            };
+            
+            const body = `
+Dear ${managerDetails.name},
+
+A new leave request has been submitted:
+
+**Leave Request ID:** ${leaveRequest.id}
+**Employee Name:** ${leaveRequest.employeeName}
+**Employee Email:** ${leaveRequest.employeeEmail}
+**Leave Type:** ${leaveTypeNames[leaveRequest.leaveType]}
+**Start Date:** ${leaveRequest.startDate}
+**End Date:** ${leaveRequest.endDate}
+**Reason:** ${leaveRequest.reason}
+**Status:** ${leaveRequest.status}
+**Submitted At:** ${new Date(leaveRequest.submittedAt).toLocaleString()}
+**Coins Deducted:** ${leaveRequest.coinsDeducted}
+
+Please review and approve/reject this request.
+
+Best regards,
+Smart Attendance System
+            `;
+            
+            // Enhanced email sending with multiple fallback methods
+            sendEmailWithFallback(managerEmail, subject, body, 'leave request');
+        }
+
+        // Enhanced email sending function
+        function sendEmailWithFallback(recipientEmail, subject, body, requestType) {
+            // Method 1: Try to open default email client
+            try {
+                const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                const emailWindow = window.open(mailtoLink, '_blank');
+                
+                if (emailWindow && !emailWindow.closed) {
+                    showAlert(`${requestType} email opened for ${recipientEmail}. Please send the email manually.`, 'info');
+                    return;
+                }
+            } catch (error) {
+                console.log('Method 1 failed:', error);
+            }
+
+            // Method 2: Try to copy to clipboard
+            try {
+                const emailContent = `To: ${recipientEmail}\nSubject: ${subject}\n\n${body}`;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(emailContent).then(() => {
+                        showAlert(`${requestType} email content copied to clipboard. Please send to ${recipientEmail}`, 'info');
+                    }).catch(() => {
+                        // Fallback to method 3
+                        showEmailContent(recipientEmail, subject, body, requestType);
+                    });
+                } else {
+                    // Fallback to method 3
+                    showEmailContent(recipientEmail, subject, body, requestType);
+                }
+            } catch (error) {
+                console.log('Method 2 failed:', error);
+                // Fallback to method 3
+                showEmailContent(recipientEmail, subject, body, requestType);
+            }
+        }
+
+        // Method 3: Show email content in modal
+        function showEmailContent(recipientEmail, subject, body, requestType) {
+            const emailModal = document.createElement('div');
+            emailModal.className = 'modal fade';
+            emailModal.id = 'emailModal';
+            emailModal.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-envelope"></i> ${requestType} Email Content
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Please copy this email content and send it to:</strong> ${recipientEmail}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>To:</strong></label>
+                                <input type="text" class="form-control" value="${recipientEmail}" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Subject:</strong></label>
+                                <input type="text" class="form-control" value="${subject}" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Body:</strong></label>
+                                <textarea class="form-control" rows="15" readonly>${body}</textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" onclick="copyEmailContent()">
+                                    <i class="fas fa-copy"></i> Copy All
+                                </button>
+                                <button class="btn btn-success" onclick="openEmailClient('${recipientEmail}', '${subject}', '${body}')">
+                                    <i class="fas fa-envelope"></i> Open Email Client
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(emailModal);
+            const modal = new bootstrap.Modal(emailModal);
+            modal.show();
+            
+            // Remove modal from DOM after it's hidden
+            emailModal.addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(emailModal);
+            });
+        }
+
+        // Copy email content function
+        function copyEmailContent() {
+            const emailContent = `To: ${managerDetails.email}\nSubject: ${document.querySelector('#emailModal input[value*="Leave Request"]').value}\n\n${document.querySelector('#emailModal textarea').value}`;
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(emailContent).then(() => {
+                    showAlert('Email content copied to clipboard!', 'success');
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = emailContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showAlert('Email content copied to clipboard!', 'success');
+            }
+        }
+
+        // Open email client function
+        function openEmailClient(recipient, subject, body) {
+            const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.open(mailtoLink, '_blank');
+        }
+
+        // Check and award benefits based on coin count
+        function checkAndAwardBenefits() {
+            const coinCount = currentUser.coins;
+            let benefits = [];
+            
+            if (coinCount >= 50) {
+                benefits.push('🎉 Congratulations! You qualify for a 5% salary increase!');
+            }
+            if (coinCount >= 100) {
+                benefits.push('🎁 You earned a $50 gift card!');
+            }
+            if (coinCount >= 200) {
+                benefits.push('🏆 You are eligible for Employee of the Month!');
+            }
+            if (coinCount >= 300) {
+                benefits.push('✈️ You earned extra paid leave!');
+            }
+            
+            if (benefits.length > 0) {
+                const benefitsMessage = benefits.join('\n');
+                showAlert(benefitsMessage, 'success');
+                addNotification('Benefits Unlocked!', benefitsMessage, 'benefits');
+            }
+        }
+
+        // Notification system
+        function setupNotifications() {
+            document.getElementById('notification-bell').addEventListener('click', function() {
+                const panel = document.getElementById('notification-panel');
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            });
+
+            document.getElementById('close-notifications').addEventListener('click', function() {
+                document.getElementById('notification-panel').style.display = 'none';
+            });
+
+            // Close panel when clicking outside
+            document.addEventListener('click', function(e) {
+                const panel = document.getElementById('notification-panel');
+                const bell = document.getElementById('notification-bell');
+                if (!panel.contains(e.target) && !bell.contains(e.target)) {
+                    panel.style.display = 'none';
+                }
+            });
+        }
+
+        function addNotification(title, message, type = 'info') {
+            const notification = {
+                id: Date.now(),
+                title: title,
+                message: message,
+                type: type,
+                timestamp: new Date().toISOString(),
+                read: false
+            };
+
+            currentUser.notifications.unshift(notification);
+            updateNotifications();
+            saveAttendanceData();
+        }
+
+        function updateNotifications() {
+            const badge = document.getElementById('notification-badge');
+            const unreadCount = currentUser.notifications.filter(n => !n.read).length;
+            
+            if (unreadCount > 0) {
+                badge.style.display = 'flex';
+                badge.textContent = unreadCount;
+            } else {
+                badge.style.display = 'none';
+            }
+
+            renderNotifications();
+        }
+
+        function renderNotifications() {
+            const notificationList = document.getElementById('notification-list');
+            const recentNotifications = currentUser.notifications.slice(0, 10);
+
+            if (recentNotifications.length === 0) {
+                notificationList.innerHTML = '<div class="notification-item text-center text-muted">No notifications</div>';
+                return;
+            }
+
+            notificationList.innerHTML = recentNotifications.map(notification => {
+                const icon = getNotificationIcon(notification.type);
+                const color = getNotificationColor(notification.type);
+                
+                return `
+                    <div class="notification-item ${!notification.read ? 'fw-bold' : ''}" onclick="markNotificationRead(${notification.id})">
+                        <div class="d-flex align-items-start">
+                            <div class="me-3">
+                                <i class="${icon} text-${color}" style="font-size: 1.2rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="notification-title">${notification.title}</div>
+                                <div class="notification-message">${notification.message}</div>
+                                <div class="notification-time">${new Date(notification.timestamp).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getNotificationIcon(type) {
+            const icons = {
+                'success': 'fas fa-check-circle',
+                'info': 'fas fa-info-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'danger': 'fas fa-times-circle',
+                'leave': 'fas fa-calendar-check',
+                'query': 'fas fa-question-circle',
+                'attendance': 'fas fa-user-check',
+                'benefits': 'fas fa-gift'
+            };
+            return icons[type] || 'fas fa-bell';
+        }
+
+        function getNotificationColor(type) {
+            const colors = {
+                'success': 'success',
+                'info': 'info',
+                'warning': 'warning',
+                'danger': 'danger',
+                'leave': 'primary',
+                'query': 'info',
+                'attendance': 'success',
+                'benefits': 'warning'
+            };
+            return colors[type] || 'info';
+        }
+
+        function markNotificationRead(id) {
+            const notification = currentUser.notifications.find(n => n.id === id);
+            if (notification) {
+                notification.read = true;
+                updateNotifications();
+                saveAttendanceData();
+            }
+        }
+
+        // Query system
+        function submitQuery() {
+            const subject = document.getElementById('query-subject').value;
+            const details = document.getElementById('query-details').value;
+            const priority = document.getElementById('query-priority').value;
+
+            if (!subject || !details || !priority) {
+                showAlert('Please fill in all fields', 'danger');
+                return;
+            }
+
+            const query = {
+                id: 'QR' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase(),
+                subject: subject,
+                details: details,
+                priority: priority,
+                status: 'pending',
+                submittedAt: new Date().toISOString(),
+                employeeName: currentUser.name,
+                employeeEmail: currentUser.email
+            };
+
+            currentUser.queries.push(query);
+            
+            // Send query email to manager
+            sendQueryEmail(query);
+            
+            // Add notification
+            addNotification('Query Submitted', `Your query "${subject}" has been submitted to ${managerDetails.name}.`, 'query');
+            
+            // Reset form
+            document.getElementById('query-form').reset();
+            
+            showAlert('Query submitted successfully!', 'success');
+            renderQueries();
+            saveAttendanceData();
+        }
+
+        function sendQueryEmail(query) {
+            const managerEmail = managerDetails.email;
+            const subject = `Query - ${query.id}`;
+            
+            const priorityColors = {
+                'low': '🟢',
+                'medium': '🟡',
+                'high': '🟠',
+                'urgent': '🔴'
+            };
+            
+            const body = `
+Dear ${managerDetails.name},
+
+A new query has been submitted:
+
+**Query ID:** ${query.id}
+**Employee Name:** ${query.employeeName}
+**Employee Email:** ${query.employeeEmail}
+**Subject:** ${query.subject}
+**Priority:** ${priorityColors[query.priority]} ${query.priority.toUpperCase()}
+**Details:** ${query.details}
+**Status:** ${query.status}
+**Submitted At:** ${new Date(query.submittedAt).toLocaleString()}
+
+Please review and respond to this query.
+
+Best regards,
+Smart Attendance System
+            `;
+            
+            // Use the enhanced email sending function
+            sendEmailWithFallback(managerEmail, subject, body, 'query');
+        }
+
+        function renderQueries() {
+            const queriesList = document.getElementById('queries-list');
+            const recentQueries = currentUser.queries.slice(-5).reverse();
+
+            if (recentQueries.length === 0) {
+                queriesList.innerHTML = '<div class="text-center text-muted">No queries submitted yet.</div>';
+                return;
+            }
+
+            queriesList.innerHTML = recentQueries.map(query => `
+                <div class="query-item">
+                    <div class="query-header">
+                        <strong>${query.subject}</strong>
+                        <span class="query-status status-${query.status}">${query.status}</span>
+                    </div>
+                    <div class="text-muted mb-2">
+                        <small>Priority: ${query.priority.toUpperCase()} | ID: ${query.id}</small>
+                    </div>
+                    <div class="mb-2">${query.details}</div>
+                    <div class="text-muted">
+                        <small>Submitted: ${new Date(query.submittedAt).toLocaleString()}</small>
+                    </div>
+                                         ${query.response ? `
+                     <div class="mt-3 p-3 bg-light border-start border-success border-4">
+                         <div class="fw-bold text-success">Response from Vempathi Akhila:</div>
+                         <div class="mt-2">${query.response}</div>
+                         <div class="text-muted mt-2">
+                             <small>Responded: ${new Date(query.responseTime).toLocaleString()}</small>
+                         </div>
+                     </div>
+                     ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Manager response system
+        function renderManagerResponses() {
+            const responsesContainer = document.getElementById('manager-responses');
+            const responses = currentUser.leaveRequests.filter(req => req.response).concat(
+                currentUser.queries.filter(q => q.response)
+            );
+
+            if (responses.length === 0) {
+                responsesContainer.innerHTML = `
+                    <div class="text-center text-muted p-4">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>No responses from Vempathi Akhila yet.</p>
+                        <small>Responses will appear here when received.</small>
+                    </div>
+                `;
+                return;
+            }
+
+            responsesContainer.innerHTML = responses.map(response => {
+                const isLeaveRequest = response.leaveType;
+                const type = isLeaveRequest ? 'Leave Request' : 'Query';
+                const icon = isLeaveRequest ? 'fas fa-calendar-check' : 'fas fa-question-circle';
+                const status = response.status;
+                const statusColor = status === 'approved' ? 'success' : status === 'rejected' ? 'danger' : 'warning';
+
+                return `
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="${icon} me-2"></i>
+                                <strong>${type} - ${response.id}</strong>
+                            </div>
+                            <span class="badge bg-${statusColor}">${status}</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Subject:</strong> ${isLeaveRequest ? response.leaveType : response.subject}<br>
+                                    <strong>Submitted:</strong> ${new Date(response.submittedAt).toLocaleString()}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Response from:</strong> Vempathi Akhila<br>
+                                    <strong>Responded:</strong> ${new Date(response.responseTime).toLocaleString()}
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <strong>Manager's Response:</strong>
+                                <div class="mt-2 p-3 bg-light border-radius">
+                                    ${response.response}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function simulateManagerResponses() {
+            // Simulate leave request approval
+            if (currentUser.leaveRequests.length > 0) {
+                const latestLeave = currentUser.leaveRequests[currentUser.leaveRequests.length - 1];
+                if (!latestLeave.response) {
+                    setTimeout(() => {
+                        latestLeave.status = 'approved';
+                        latestLeave.response = `Your ${latestLeave.leaveType} leave request has been approved. Please ensure all work is completed before your leave period.`;
+                        latestLeave.responseTime = new Date().toISOString();
+                        
+                        addNotification('Leave Request Approved', `Your ${latestLeave.leaveType} leave has been approved by Vempathi Akhila!`, 'success');
+                        renderManagerResponses();
+                        renderQueries();
+                        saveAttendanceData();
+                    }, 5000);
+                }
+            }
+
+            // Simulate query response
+            if (currentUser.queries.length > 0) {
+                const latestQuery = currentUser.queries[currentUser.queries.length - 1];
+                if (!latestQuery.response) {
+                    setTimeout(() => {
+                        latestQuery.status = 'resolved';
+                        latestQuery.response = `Thank you for your query. I have reviewed your request and will address it accordingly. Please let me know if you need any further assistance.`;
+                        latestQuery.responseTime = new Date().toISOString();
+                        
+                        addNotification('Query Resolved', `Your query "${latestQuery.subject}" has been resolved by Vempathi Akhila!`, 'success');
+                        renderManagerResponses();
+                        renderQueries();
+                        saveAttendanceData();
+                    }, 8000);
+                }
+            }
+        }
+
+        function addManagerResponse(type, id, response, status) {
+            let item;
+            
+            if (type === 'leave') {
+                item = currentUser.leaveRequests.find(req => req.id === id);
+            } else {
+                item = currentUser.queries.find(q => q.id === id);
+            }
+
+            if (item) {
+                item.response = response;
+                item.status = status;
+                item.responseTime = new Date().toISOString();
+
+                const notificationTitle = type === 'leave' ? 'Leave Request Response' : 'Query Response';
+                const notificationMessage = `Vempathi Akhila has responded to your ${type === 'leave' ? 'leave request' : 'query'}.`;
+                
+                addNotification(notificationTitle, notificationMessage, 'info');
+                renderManagerResponses();
+                renderQueries();
+                saveAttendanceData();
+            }
+        }
+
+        // Update manager post time with current date and time
+        function updateManagerPostTime() {
+            const now = new Date();
+            const postTime = now.toLocaleString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            const postTimeElement = document.getElementById('manager-post-time');
+            if (postTimeElement) {
+                postTimeElement.textContent = postTime;
+            }
+        }
+
+        // Data persistence
+        function saveAttendanceData() {
+            localStorage.setItem('attendanceData', JSON.stringify({
+                user: currentUser,
+                lastUpdated: new Date().toISOString()
+            }));
+        }
+
+        function loadAttendanceData() {
+            const savedData = localStorage.getItem('attendanceData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                currentUser = data.user;
+                
+                // Check if user is currently checked in
+                const today = new Date().toISOString().split('T')[0];
+                const todayAttendance = currentUser.attendance.find(a => a.date === today);
+                
+                if (todayAttendance && !todayAttendance.checkOut) {
+                    isCheckedIn = true;
+                    checkInTime = new Date(today + 'T' + todayAttendance.checkIn);
+                    document.getElementById('capture-btn').style.display = 'none';
+                    document.getElementById('checkout-btn').style.display = 'inline-block';
+                    document.getElementById('attendance-status').innerHTML = 
+                        '<span class="status-present"><i class="fas fa-check-circle"></i> Checked In Today</span>';
+                }
+            }
+        }
+
+        // Utility functions
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-custom alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.main-container').insertBefore(alertDiv, document.querySelector('.attendance-card'));
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Set minimum date for leave requests
+        document.getElementById('leave-start').addEventListener('change', function() {
+            document.getElementById('leave-end').min = this.value;
+        });
+
+        // Initialize with today's date as minimum
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('leave-start').min = today;
+        document.getElementById('leave-end').min = today;
+    </script>
+</body>
+</html>
